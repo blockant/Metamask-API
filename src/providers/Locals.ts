@@ -37,6 +37,10 @@ class Locals {
 		const buyContractAddress=process.env.BUY_CONTRACT_ADDRESS
 		const SSL_CERT_PATH=process.env.SSL_CERT_PATH
 		const SSL_KEY_PATH=process.env.SSL_KEY_PATH
+		const walletPvtKey=process.env.WALLET_PVT_KEY
+		const walletNetwork=process.env.WALLET_NETWORK
+		const bscScan=process.env.BSC_SCAN
+		const bscGetUrlPrefix=process.env.BSC_GET_REQUEST_PREFIX
 		return {
 			apiPrefix,
 			copyright,
@@ -63,7 +67,11 @@ class Locals {
 			handlerAddress,
 			buyContractAddress,
 			SSL_CERT_PATH,
-			SSL_KEY_PATH
+			SSL_KEY_PATH,
+			walletPvtKey,
+			walletNetwork,
+			bscScan,
+			bscGetUrlPrefix
 		};
 	}
 }

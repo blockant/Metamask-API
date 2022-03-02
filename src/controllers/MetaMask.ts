@@ -27,8 +27,8 @@ class MetaMaskController{
         try{
             const {wallet_address, amount}=req.body
             const provider = new HDWalletProvider(
-                'sort island camera clay tiger miss sting light scheme quit bid model',
-                'https://data-seed-prebsc-1-s1.binance.org:8545'
+                Locals.config().walletPvtKey,
+                Locals.config().walletNetwork
               );
             const web = new Web3(provider);
             const tokenContract = new web.eth.Contract(token, Locals.config().tokenContractAddress);
@@ -38,47 +38,49 @@ class MetaMaskController{
             // if(allowance.toString()<amount.toString()+ "000000000000000000"){
             //     throw new Error(`User has not authorized tranfer of tokens of amount ${amount.toString()}`)
             // }
-            const buy = await tokenContract.methods.transfer(wallet_address,Locals.config().handlerAddress,amount.toString() + "000000000000000000").send({from:Locals.config().handlerAddress})
+            const rep=await tokenContract.methods.balanceOf(Locals.config().handlerAddress).call()
+            console.log('Rep is', rep)
+            const buy = await tokenContract.methods.transfer(wallet_address,amount.toString() + "000000000000000000").send({from:Locals.config().handlerAddress})
             console.log('Response of Buy is', buy)
             // Logger.debug(`After Buying ${JSON.stringify(buy)}`)
             if(buy.status){
-                return res.status(200).json({message: 'Tokens transfer Success'})
+                return res.status(200).json({message: 'Tokens transfer Success', url: `${Locals.config().bscScan}${buy?.transactionHash}`})
             }else{
-                throw new Error('Unable to create Bid')
+                throw new Error('Token Transfer Failed, try again later')
             }
         }catch(err){
+            console.log(err)
             return res.status(500).json({message: 'Something Went Wrong', err: err.message})
         }
     }
     //To Get Transaction History
     public static async getHistory(req: Request, res: Response){
         try{
-            const {page, api_key, to_address, from_address, time}=req.query
-            if(!page || !api_key){
+            const {page, api_key,get_type}=req.query
+            let {user_address}=req.query
+            if(!page || !api_key || !get_type || !user_address || typeof(user_address)!=="string"){
                 throw new Error('Missing Page or API Key')
             }
-            const response=await axios.get(`https://api.bscscan.com/api ?module=account&action=tokentx&contractaddress=0xc9849e6fdb743d08faee3e34dd2d1bc69ea11a51&address=0x7bb89460599dbf32ee3aa50798bbceae2a5f7f6a&page=${page}&offset=5&startblock=0&endblock=999999999&sort=asc&apikey=${api_key}`)
-            let foundResults= response.data.result
-            foundResults=foundResults.map((item: any)=>{
-                if(to_address && item.to===to_address){
-                    return item
+            user_address=user_address.toLowerCase();
+            if(get_type!=='received' && get_type!=='sent'){
+                throw new Error('Invalid Get Type, can be of received and sent only')
+            }
+            const response=await axios.get(`${Locals.config().bscGetUrlPrefix}api?module=account&action=tokentx&contractaddress=${Locals.config().tokenContractAddress}&address=${user_address}&page=${page}&startblock=0&endblock=999999999&sort=asc&apikey=${api_key}`)
+            // console.log('Response data is', response.data)
+            const foundResults= response.data.result
+            // console.log('Found Result are', foundResults)
+            const answer: any=[]
+            for (const result of foundResults) {
+                if(get_type==='received'&& result.to==user_address){
+                    console.log('Matched', result)
+                    answer.push(result)
                 }
-                if(from_address && item.from===from_address){
-                    return item
+                if(get_type==='sent' && result.from===user_address){
+                    answer.push(result)
                 }
-                if(time){
-                    let ms_now=Date.now()
-                    ms_now=ms_now-Number(time)
-                    if(item.timeStamp>=ms_now){
-                        return item
-                    }
-                }
-            })
-            foundResults=foundResults.filter(function (el: any) {
-                return el != null;
-            });              
-            console.log('Result Data is', foundResults)
-            return res.status(200).json({message: 'success', result: foundResults})
+            }
+            console.log('Result Data is', answer)
+            return res.status(200).json({message: 'success', result: answer})
         }catch(err){
             return res.status(500).json({message: 'Something Went Wrong', err: err.message})
         }
