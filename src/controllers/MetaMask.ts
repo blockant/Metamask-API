@@ -71,11 +71,11 @@ class MetaMaskController{
             // console.log('Found Result are', foundResults)
             const answer: any=[]
             for (const result of foundResults) {
-                if(get_type==='received'&& result.to==user_address){
+                if(get_type==='received'&& result.to===user_address && result.from===Locals.config().handlerAddress.toLowerCase()){
                     console.log('Matched', result)
                     answer.push(result)
                 }
-                if(get_type==='sent' && result.from===user_address){
+                if(get_type==='sent' && result.from===user_address && result.to===Locals.config().handlerAddress.toLowerCase()){
                     answer.push(result)
                 }
             }
